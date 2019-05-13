@@ -92,15 +92,15 @@ namespace Xamarin.Forms.Platform.Android
         {
             if (e.PropertyName == Shell.FlyoutHeaderBehaviorProperty.PropertyName)
                 UpdateFlyoutHeaderBehavior();
-            else if (e.IsOneOf(Shell.FlyoutBackgroundColorProperty, Shell.FlyoutBackgroundImageSourceProperty))
+            else if (e.IsOneOf(Shell.FlyoutBackgroundColorProperty, Shell.FlyoutBackgroundImageProperty))
                 UpdateFlyoutBackground();
         }
 
         protected virtual async void UpdateFlyoutBackground()
         {
             var color = _shellContext.Shell.FlyoutBackgroundColor;
-			var imageSource = _shellContext.Shell.FlyoutBackgroundImageSource;
-			if (_defaultBackground == null && color.IsDefault && !_shellContext.Shell.IsSet(Shell.FlyoutBackgroundImageSourceProperty))
+			var imageSource = _shellContext.Shell.FlyoutBackgroundImage;
+			if (_defaultBackground == null && color.IsDefault && !_shellContext.Shell.IsSet(Shell.FlyoutBackgroundImageProperty))
                 return;
 
             if (_defaultBackground == null)

@@ -32,7 +32,7 @@ namespace Xamarin.Forms.Platform.iOS
 
 		protected virtual void HandleShellPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
-			if (e.IsOneOf(Shell.FlyoutBackgroundColorProperty, Shell.FlyoutBackgroundImageSourceProperty))
+			if (e.IsOneOf(Shell.FlyoutBackgroundColorProperty, Shell.FlyoutBackgroundImageProperty))
 				UpdateBackground();
 		}
 
@@ -51,7 +51,7 @@ namespace Xamarin.Forms.Platform.iOS
 					_blurView.RemoveFromSuperview();
 			}
 
-			var imageSource = _shellContext.Shell.FlyoutBackgroundImageSource;
+			var imageSource = _shellContext.Shell.FlyoutBackgroundImage;
 			if (imageSource != null)
 			{
 				using (var nativeImage = await imageSource.GetNativeImageAsync())

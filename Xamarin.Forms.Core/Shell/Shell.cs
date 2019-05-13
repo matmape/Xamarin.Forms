@@ -538,8 +538,8 @@ namespace Xamarin.Forms
 
 		public static readonly BindableProperty CurrentStateProperty = CurrentStatePropertyKey.BindableProperty;
 
-		public static readonly BindableProperty FlyoutBackgroundImageSourceProperty =
-			BindableProperty.Create(nameof(FlyoutBackgroundImageSource), typeof(ImageSource), typeof(Shell), default(ImageSource), BindingMode.OneTime);
+		public static readonly BindableProperty FlyoutBackgroundImageProperty =
+			BindableProperty.Create(nameof(FlyoutBackgroundImage), typeof(ImageSource), typeof(Shell), default(ImageSource), BindingMode.OneTime);
 
 		public static readonly BindableProperty FlyoutBackgroundColorProperty =
 			BindableProperty.Create(nameof(FlyoutBackgroundColor), typeof(Color), typeof(Shell), Color.Default, BindingMode.OneTime);
@@ -617,10 +617,10 @@ namespace Xamarin.Forms
 		public ShellNavigationState CurrentState => (ShellNavigationState)GetValue(CurrentStateProperty);
 
 		[TypeConverter(typeof(ImageSourceConverter))]
-		public ImageSource FlyoutBackgroundImageSource
+		public ImageSource FlyoutBackgroundImage
 		{
-			get => (ImageSource)GetValue(FlyoutBackgroundImageSourceProperty);
-			set => SetValue(FlyoutBackgroundImageSourceProperty, value);
+			get => (ImageSource)GetValue(FlyoutBackgroundImageProperty);
+			set => SetValue(FlyoutBackgroundImageProperty, value);
 		}
 
 		public Color FlyoutBackgroundColor
