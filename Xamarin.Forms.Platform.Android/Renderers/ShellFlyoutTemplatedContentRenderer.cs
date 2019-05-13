@@ -10,6 +10,7 @@ using System;
 using System.ComponentModel;
 using AView = Android.Views.View;
 using LP = Android.Views.ViewGroup.LayoutParams;
+using Android.Graphics;
 
 namespace Xamarin.Forms.Platform.Android
 {
@@ -27,8 +28,9 @@ namespace Xamarin.Forms.Platform.Android
         HeaderContainer _headerView;
         AView _rootView;
         Drawable _defaultBackground;
+		ImageView _bgImage;
 
-        public ShellFlyoutTemplatedContentRenderer(IShellContext shellContext)
+		public ShellFlyoutTemplatedContentRenderer(IShellContext shellContext)
         {
             _shellContext = shellContext;
 
@@ -77,7 +79,13 @@ namespace Xamarin.Forms.Platform.Android
 
             coordinator.LayoutParameters = new LP(width, LP.MatchParent);
 
-            UpdateFlyoutHeaderBehavior();
+			_bgImage = new ImageView(context)
+			{
+				LayoutParameters = new LP(coordinator.LayoutParameters),
+				Elevation = -100
+			};
+
+			UpdateFlyoutHeaderBehavior();
             _shellContext.Shell.PropertyChanged += OnShellPropertyChanged;
 
             UpdateFlyoutBackground();
@@ -92,34 +100,156 @@ namespace Xamarin.Forms.Platform.Android
         {
             if (e.PropertyName == Shell.FlyoutHeaderBehaviorProperty.PropertyName)
                 UpdateFlyoutHeaderBehavior();
-            else if (e.IsOneOf(Shell.FlyoutBackgroundColorProperty, Shell.FlyoutBackgroundImageProperty))
+            else if (e.IsOneOf(
+				Shell.FlyoutBackgroundColorProperty, 
+				Shell.FlyoutBackgroundImageProperty, 
+				Shell.FlyoutBackgroundImageAspectProperty))
                 UpdateFlyoutBackground();
         }
 
-        protected virtual async void UpdateFlyoutBackground()
-        {
-            var color = _shellContext.Shell.FlyoutBackgroundColor;
+		//Size AspectFit(Size aspectSize, Size boundingSize)
+		//{
+		//	var width = boundingSize.Width;
+		//	var height = boundingSize.Height;
+		//	var mW = boundingSize.Width / aspectSize.Width;
+		//	var mH = boundingSize.Height / aspectSize.Height;
+		//	if (mH < mW)
+		//		width = boundingSize.Height * aspectSize.Width / aspectSize.Height;
+		//	else if (mW < mH)
+		//		height = boundingSize.Width * aspectSize.Height / aspectSize.Width;
+
+		//	return new Size(width, height);
+		//}
+
+		//Size AspectFill(Size aspectSize, Size minimumSize)
+		//{
+		//	var width = minimumSize.Width;
+		//	var height = minimumSize.Height;
+		//	var mW = minimumSize.Width / aspectSize.Width;
+		//	var mH = minimumSize.Height / aspectSize.Height;
+		//	if (mH > mW)
+		//		width = minimumSize.Height * aspectSize.Width / aspectSize.Height;
+		//	else if (mW > mH)
+		//		height = minimumSize.Width * aspectSize.Height / aspectSize.Width;
+
+		//	return new Size(width, height);
+		//}
+
+		//class AspectDrawable: Drawable
+		//{
+		//	Drawable _target;
+
+		//	public AspectDrawable(Drawable target)
+		//	{
+		//		_target = target;
+		//	}
+
+		//	public override void SetBounds(int left, int top, int right, int bottom)
+		//	{
+		//		var sourceRect = new RectF(0, 0, _target.IntrinsicWidth, _target.IntrinsicHeight);
+		//		var screenRect = new RectF(left, top, right, bottom);
+
+		//		var matrix = new Matrix();
+		//		matrix.SetRectToRect(screenRect, sourceRect, Matrix.ScaleToFit.Center);
+
+		//		var inverse = new Matrix();
+		//		matrix.Invert(inverse);
+		//		inverse.MapRect(sourceRect);
+
+		//		_target.SetBounds((int)sourceRect.Left, (int)sourceRect.Top, (int)sourceRect.Right, (int)sourceRect.Bottom);
+
+		//		base.SetBounds(left, top, right, bottom);
+		//	}
+
+		//	protected override void Dispose(bool disposing)
+		//	{
+		//		if (_target != null && !_target.IsDisposed())
+		//			_target.Dispose();
+		//		base.Dispose(disposing);
+		//	}
+
+		//	public override int Opacity => _target.Opacity;
+
+		//	public override void Draw(Canvas canvas)
+		//	{
+		//		canvas.Save();
+		//		canvas.ClipRect(Bounds);
+		//		_target.Draw(canvas);
+		//		canvas.Restore();
+		//	}
+
+		//	public override void SetAlpha(int alpha) => _target.SetAlpha(alpha);
+
+		//	public override void SetColorFilter(ColorFilter colorFilter) => _target.SetColorFilter(colorFilter);
+		//}
+
+		protected virtual async void UpdateFlyoutBackground()
+		{
+			var color = _shellContext.Shell.FlyoutBackgroundColor;
 			var imageSource = _shellContext.Shell.FlyoutBackgroundImage;
 			if (_defaultBackground == null && color.IsDefault && !_shellContext.Shell.IsSet(Shell.FlyoutBackgroundImageProperty))
-                return;
+				return;
 
-            if (_defaultBackground == null)
-                _defaultBackground = _rootView.Background;
+			if (_defaultBackground == null)
+				_defaultBackground = _rootView.Background;
 
-            if (color.IsDefault)
-                _rootView.Background = _defaultBackground;
-            else
-                _rootView.Background = new ColorDrawable(color.ToAndroid());
+			_rootView.Background = color.IsDefault ? _defaultBackground : new ColorDrawable(color.ToAndroid());
 
-			if (imageSource != null)
+			if (imageSource == null)
 			{
-				using (var drawable = await _shellContext.AndroidContext.GetFormsDrawableAsync(imageSource))
-				{
-					if (!_rootView.IsDisposed())
-						_rootView.Background = drawable;
-				}
+				if (_rootView is ViewGroup view && view.IndexOfChild(_bgImage) == -1)
+					view.RemoveView(_bgImage);
+				return;
 			}
-        }
+
+			using (var drawable = await _shellContext.AndroidContext.GetFormsDrawableAsync(imageSource) as BitmapDrawable)
+			{
+				if (_rootView.IsDisposed() || drawable == null || !(_rootView is ViewGroup view))
+					return;
+
+				if (view.IndexOfChild(_bgImage) == -1)
+					view.AddView(_bgImage);
+
+				var bitmapSize = new Size(drawable.Bitmap.Width, drawable.Bitmap.Height);
+				var boundingSize = new Size(_rootView.Width, _rootView.Height - _headerView.Height);
+				var size = bitmapSize;
+
+				_bgImage.SetImageDrawable(drawable);
+
+				// TODO
+				switch (_shellContext.Shell.FlyoutBackgroundImageAspect)
+				{
+					default:
+					case Aspect.AspectFit:
+						_bgImage.SetScaleType(ImageView.ScaleType.Center);
+						//size = AspectFit(bitmapSize, boundingSize);
+						//drawable.Gravity = GravityFlags.Center;
+						break;
+					case Aspect.AspectFill:
+						_bgImage.SetScaleType(ImageView.ScaleType.FitCenter);
+						//size = AspectFill(bitmapSize, boundingSize);
+						//drawable.Gravity = GravityFlags.RelativeLayoutDirection;
+						break;
+					case Aspect.Fill:
+						_bgImage.SetScaleType(ImageView.ScaleType.FitXy);
+						//drawable.Gravity = GravityFlags.Fill;
+						break;
+				}
+				//var paddingW = (boundingSize.Width - size.Width) / 2;
+				//var paddingH = (boundingSize.Height - size.Height) / 2;
+
+
+				////var ad = new AspectDrawable(drawable);
+
+				//drawable.SetBounds(
+				//	(int)(boundingSize.Width + paddingW),
+				//	(int)(boundingSize.Height + paddingH),
+				//	(int)(size.Width - paddingW),
+				//	(int)(size.Height - paddingH));
+
+				//_rootView.Background = new LayerDrawable(new[] { _rootView.Background, drawable });
+			}
+		}
 
         protected virtual void UpdateFlyoutHeaderBehavior()
         {
@@ -167,10 +297,12 @@ namespace Xamarin.Forms.Platform.Android
                     _headerView.Dispose();
                     _rootView.Dispose();
                     _defaultBackground?.Dispose();
-                }
+					_bgImage?.Dispose();
+				}
 
                 _defaultBackground = null;
-                _rootView = null;
+				_bgImage = null;
+				_rootView = null;
                 _headerView = null;
                 _shellContext = null;
                 _disposed = true;

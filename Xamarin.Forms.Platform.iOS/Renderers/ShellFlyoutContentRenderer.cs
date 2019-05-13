@@ -59,6 +59,20 @@ namespace Xamarin.Forms.Platform.iOS
 					if (nativeImage == null || View == null)
 						return;
 					_bgImage.Image = nativeImage;
+					switch (_shellContext.Shell.FlyoutBackgroundImageAspect)
+					{
+						default:
+						case Aspect.AspectFit:
+							_bgImage.ContentMode = UIViewContentMode.ScaleAspectFit;
+							break;
+						case Aspect.AspectFill:
+							_bgImage.ContentMode = UIViewContentMode.ScaleAspectFill;
+							break;
+						case Aspect.Fill:
+							_bgImage.ContentMode = UIViewContentMode.ScaleToFill;
+							break;
+					}
+					
 					View.InsertSubview(_bgImage, 0);
 					// pattern
 					//View.BackgroundColor = UIColor.FromPatternImage(nativeImage);
